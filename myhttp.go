@@ -10,6 +10,9 @@ import (
 	"time"
 )
 
+// Set a reasonable time out (s) for the requests.
+const sTimeOutClient = 8
+
 func main() {
 	// BENCHMARK: start chrono.
 	start := time.Now()
@@ -31,8 +34,15 @@ func main() {
 	// The fetch goroutines will write the results in a channel too.
 	res := make(chan string)
 
+	// Set a client with time out for all workers.
+	// The Client's transport has cached TCP connections, so we should reuse it. It is also safe for concurrent
+	// use by multiple goroutines.
+	cl := http.Client{
+		Timeout: time.Second * sTimeOutClient,
+	}
+
 	// Let the given number of fetch goroutines start working in parallel.
-	// We use a waiting group to know when we can close the results channel.
+	// Use a waiting group to know when we can close the results channel.
 	var wg sync.WaitGroup
 	for i := 0; i < *parallel; i++ {
 		wg.Add(1)
@@ -40,7 +50,7 @@ func main() {
 			defer wg.Done()
 			// To every worker: do fetch urls until the pool is empty.
 			for url := range urls {
-				fetch(url, res)
+				fetch(cl, url, res)
 			}
 		}()
 	}
@@ -62,16 +72,21 @@ func main() {
 }
 
 // fetch writes the hashed response body into a channel, following a request.
-func fetch(url string, res chan string) {
-	resp, err := http.Get(url)
+func fetch(cl http.Client, url string, res chan string) {
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		res <- fmt.Sprint(err)
+		res <- fmt.Sprint(err, "\n")
+		return
+	}
+	resp, err := cl.Do(req)
+	if err != nil {
+		res <- fmt.Sprint(err, "\n")
 		return
 	}
 	b, err := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
-	if err != nil { // Write the error to the channel.
-		res <- fmt.Sprintf("fetch: reading %s %v", url, err)
+	if err != nil {
+		res <- fmt.Sprint("read:", url, err, "\n")
 		return
 	}
 
