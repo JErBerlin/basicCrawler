@@ -14,9 +14,6 @@ import (
 const sTimeOutClient = 8
 
 func main() {
-	// BENCHMARK: start chrono.
-	start := time.Now()
-
 	parallel := flag.Int("parallel", 10, "max number of parallel requests")
 	flag.Parse()
 
@@ -50,7 +47,7 @@ func main() {
 			defer wg.Done()
 			// To every worker: do fetch urls until the pool is empty.
 			for url := range urls {
-				fetch(cl, url, res)
+				Fetch(cl, url, res)
 			}
 		}()
 	}
@@ -66,13 +63,10 @@ func main() {
 	for r := range res {
 		fmt.Println(r)
 	}
-
-	// BENCHMARK: stop and print chrono.
-	fmt.Printf("%.2fs total elapsed\n", time.Since(start).Seconds())
 }
 
-// fetch writes the hashed response body into a channel, following a request.
-func fetch(cl http.Client, url string, res chan string) {
+// Fetch writes the hashed response body into a channel, following a request.
+func Fetch(cl http.Client, url string, res chan string) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		res <- fmt.Sprint(err, "\n")
@@ -91,5 +85,7 @@ func fetch(cl http.Client, url string, res chan string) {
 	}
 
 	// Write the MD5 hash of the response body to the results channel
-	res <- fmt.Sprintf("%s\t%x\n", url, md5.Sum(b))
+	// DEBUG
+	// res <- fmt.Sprintf("%s %s", url, string(b))
+	res <- fmt.Sprintf("%s %x", url, md5.Sum(b))
 }
