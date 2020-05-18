@@ -28,7 +28,7 @@ specifying the number n = 2 of parallel threads (goroutines)
 
 taking the urls from a file (text file with one ulr per line), in linux:
 
-'xargs ./myhttp -parallel=100 < urlslist.txt'
+`xargs ./myhttp -parallel=100 < urlslist.txt`
 
 ## TODO
 
