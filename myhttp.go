@@ -85,7 +85,5 @@ func Fetch(cl http.Client, url string, res chan string) {
 	}
 
 	// Write the MD5 hash of the response body to the results channel
-	// DEBUG
-	// res <- fmt.Sprintf("%s %s", url, string(b))
 	res <- fmt.Sprintf("%s %x", url, md5.Sum(b))
 }
